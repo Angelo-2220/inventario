@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inventario de Bodega</title>
+<style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 20px;
+      background-color: #f1f5f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #222;
+    }
+    form, .busqueda {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    input[type="file"] {
+      border: none;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    tr:hover {
+      background: #f0f0f0;
+    }
+    img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .acciones button {
+      background: #2196F3;
+      margin: 0 3px;
+    }
+    .acciones button.eliminar {
+      background: #e53935;
+    }
+    .acciones button:hover {
+      opacity: 0.85;
+    }
+    .busqueda input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+<h1>📦 Inventario de Bodega</h1>
+
+  <div class="busqueda">
+    <input type="text" id="buscar" placeholder="Buscar producto por nombre...">
+  </div>
+
+  <form id="formProducto">
+    <input type="hidden" id="indiceEditar" value="">
+    <input type="text" id="nombre" placeholder="Nombre del producto" required>
+    <input type="number" id="cantidad" placeholder="Cantidad" min="1" required>
+    <input type="file" id="foto" accept="image/*">
+    <button type="submit">Guardar Producto</button>
+  </form>
+
+  <table id="tabla">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Cantidad</th>
+        <th>Foto</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById('formProducto');
+    const tabla = document.querySelector('#tabla tbody');
+    const buscar = document.getElementById('buscar');
+    const indiceEditar = document.getElementById('indiceEditar');
+
+    let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
+
+    function guardarInventario() {
+      localStorage.setItem('inventario', JSON.stringify(inventario));
+    }
+
+    function mostrarInventario(filtro = '') {
+      tabla.innerHTML = '';
+      inventario
+        .filter(item => item.nombre.toLowerCase().includes(filtro.toLowerCase()))
+        .forEach((item, index) => {
+          const fila = document.createElement('tr');
+          fila.innerHTML = `
+            <td>${item.nombre}</td>
+            <td>${item.cantidad}</td>
+            <td>${item.foto ? `<img src="${item.foto}" alt="Foto">` : '—'}</td>
+            <td class="acciones">
+              <button onclick="editar(${index})">✏️ Editar</button>
+              <button class="eliminar" onclick="eliminar(${index})">🗑️ Eliminar</button>
+            </td>
+          `;
+          tabla.appendChild(fila);
+        });
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById('nombre').value;
+      const cantidad = document.getElementById('cantidad').value;
+      const fotoInput = document.getElementById('foto');
+      const indice = indiceEditar.value;
+      const reader = new FileReader();
+
+      const guardarProducto = (fotoBase64) => {
+        const producto = { nombre, cantidad, foto: fotoBase64 || '' };
+
+        if (indice !== '') {
+          inventario[indice] = producto;
+          indiceEditar.value = '';
+        } else {
+          inventario.push(producto);
+        }
+
+        guardarInventario();
+        mostrarInventario();
+        form.reset();
+      };
+
+      if (fotoInput.files[0]) {
+        reader.onload = function(event) {
+          guardarProducto(event.target.result);
+        };
+        reader.readAsDataURL(fotoInput.files[0]);
+      } else {
+        guardarProducto(indice !== '' ? inventario[indice].foto : '');
+      }
+    });
+
+    function editar(index) {
+      const item = inventario[index];
+      document.getElementById('nombre').value = item.nombre;
+      document.getElementById('cantidad').value = item.cantidad;
+      indiceEditar.value = index;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function eliminar(index) {
+      if (confirm("¿Seguro que deseas eliminar este producto?")) {
+        inventario.splice(index, 1);
+        guardarInventario();
+        mostrarInventario();
+      }
+    }
+
+    buscar.addEventListener('input', () => {
+      mostrarInventario(buscar.value);
+    });
+
+    mostrarInventario();
+  </script>
+</body>
+</html>
