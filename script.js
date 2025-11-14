@@ -1,18 +1,55 @@
-import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    where,
+    updateDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// =================== GUARDAR PRODUCTO ===================
+
+// =================== GUARDAR / UNIR PRODUCTO ===================
 async function guardarProducto(nombre, cantidad, foto) {
     const productosRef = collection(db, "productos");
 
-    await addDoc(productosRef, {
-        nombre: nombre,
-        cantidad: cantidad,
-        foto: foto
-    });
+    // 1. Buscar si existe un producto con el mismo nombre
+    const q = query(productosRef, where("nombre", "==", nombre));
+    const snapshot = await getDocs(q);
 
-    alert("Producto guardado ✔");
+    if (!snapshot.empty) {
+        // ===================
+        // PRODUCTO YA EXISTE
+        // ===================
+
+        const docExistente = snapshot.docs[0];
+        const datos = docExistente.data();
+
+        const nuevaCantidad = Number(datos.cantidad) + Number(cantidad);
+
+        await updateDoc(docExistente.ref, {
+            cantidad: nuevaCantidad,
+            // Si subes nueva foto, se actualiza
+            foto: foto || datos.foto 
+        });
+
+        alert("Producto actualizado ✔ (cantidad sumada)");
+    } else {
+        // ===================
+        // NO EXISTE → CREAR NUEVO
+        // ===================
+
+        await addDoc(productosRef, {
+            nombre: nombre,
+            cantidad: Number(cantidad),
+            foto: foto || ""
+        });
+
+        alert("Producto agregado ✔");
+    }
+
     cargarProductos();
 }
+
 
 // =================== CARGAR PRODUCTOS ===================
 async function cargarProductos() {
@@ -35,11 +72,12 @@ async function cargarProductos() {
     });
 }
 
-// =================== MANEJAR FORMULARIO ===================
+
+// =================== FORMULARIO ===================
 document.getElementById("formInventario").addEventListener("submit", (e) => {
     e.preventDefault();
 
-    const nombre = document.getElementById("nombre").value;
+    const nombre = document.getElementById("nombre").value.trim();
     const cantidad = document.getElementById("cantidad").value;
     const fotoInput = document.getElementById("foto");
 
@@ -55,5 +93,7 @@ document.getElementById("formInventario").addEventListener("submit", (e) => {
     }
 });
 
+
 // =================== INICIO ===================
 window.onload = cargarProductos;
+
