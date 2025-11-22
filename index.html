@@ -1,9 +1,10 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="es">
 <head>
-<meta charset="utf-8">
-<title>Inventario de Bodega</title>
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario de Bodega</title>
+  <style>
     body {
       font-family: "Segoe UI", Arial, sans-serif;
       margin: 20px;
@@ -80,7 +81,7 @@
   </style>
 </head>
 <body>
-<h1>📦 Inventario de Bodega</h1>
+  <h1>📦 Inventario de Bodega</h1>
 
   <div class="busqueda">
     <input type="text" id="buscar" placeholder="Buscar producto por nombre...">
@@ -192,69 +193,5 @@
 
     mostrarInventario();
   </script>
-	<script type="module">
-  // ✅ Importa las funciones necesarias del SDK de Firebase
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-
-  // ✅ Configura tu conexión (usa tus propios datos de Firebase)
-  const firebaseConfig = {
-    apiKey: "TU_API_KEY",
-    authDomain: "inventario-edith.firebaseapp.com",
-    databaseURL: "https://inventario-edith-default-rtdb.firebaseio.com",
-    projectId: "inventario-edith",
-    storageBucket: "inventario-edith.appspot.com",
-    messagingSenderId: "734755253879",
-    appId: "1:734755253879:web:3874e8f577de75279e0602"
-  };
-
-  // ✅ Inicializa Firebase
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // ✅ FUNCIONES DEL INVENTARIO
-
-  // Guardar un nuevo producto en la base de datos
-  function guardarProducto(nombre, cantidad) {
-    const productosRef = ref(db, "productos");
-    const nuevoProducto = push(productosRef);
-    set(nuevoProducto, {
-      nombre: nombre,
-      cantidad: cantidad
-    });
-  }
-
-  // Leer los productos en tiempo real
-  function mostrarProductos() {
-    const productosRef = ref(db, "productos");
-    onValue(productosRef, (snapshot) => {
-      const data = snapshot.val();
-      const tabla = document.getElementById("tablaProductos");
-      tabla.innerHTML = ""; // limpia la tabla antes de mostrar nuevos datos
-      for (let id in data) {
-        const prod = data[id];
-        tabla.innerHTML += `
-          <tr>
-            <td>${prod.nombre}</td>
-            <td>${prod.cantidad}</td>
-          </tr>`;
-      }
-    });
-  }
-
-  // Escuchar el botón "Guardar"
-  document.getElementById("btnGuardar").addEventListener("click", () => {
-    const nombre = document.getElementById("nombre").value;
-    const cantidad = document.getElementById("cantidad").value;
-    if (nombre && cantidad) {
-      guardarProducto(nombre, cantidad);
-      document.getElementById("nombre").value = "";
-      document.getElementById("cantidad").value = "";
-    }
-  });
-
-  // Mostrar los productos al cargar la página
-  mostrarProductos();
-</script>
 </body>
 </html>
