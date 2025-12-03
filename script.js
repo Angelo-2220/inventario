@@ -1,99 +1,84 @@
-import {
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    where,
-    updateDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+const form = document.getElementById('formProducto');
+const tabla = document.querySelector('#tabla tbody');
+const buscar = document.getElementById('buscar');
+const indiceEditar = document.getElementById('indiceEditar');
 
+let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
 
-// =================== GUARDAR / UNIR PRODUCTO ===================
-async function guardarProducto(nombre, cantidad, foto) {
-    const productosRef = collection(db, "productos");
-
-    // 1. Buscar si existe un producto con el mismo nombre
-    const q = query(productosRef, where("nombre", "==", nombre));
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-        // ===================
-        // PRODUCTO YA EXISTE
-        // ===================
-
-        const docExistente = snapshot.docs[0];
-        const datos = docExistente.data();
-
-        const nuevaCantidad = Number(datos.cantidad) + Number(cantidad);
-
-        await updateDoc(docExistente.ref, {
-            cantidad: nuevaCantidad,
-            // Si subes nueva foto, se actualiza
-            foto: foto || datos.foto 
-        });
-
-        alert("Producto actualizado ✔ (cantidad sumada)");
-    } else {
-        // ===================
-        // NO EXISTE → CREAR NUEVO
-        // ===================
-
-        await addDoc(productosRef, {
-            nombre: nombre,
-            cantidad: Number(cantidad),
-            foto: foto || ""
-        });
-
-        alert("Producto agregado ✔");
-    }
-
-    cargarProductos();
+function guardarInventario() {
+  localStorage.setItem('inventario', JSON.stringify(inventario));
 }
 
-
-// =================== CARGAR PRODUCTOS ===================
-async function cargarProductos() {
-    const productosRef = collection(db, "productos");
-    const snapshot = await getDocs(productosRef);
-
-    const contenedor = document.getElementById("listaProductos");
-    contenedor.innerHTML = "";
-
-    snapshot.forEach(doc => {
-        const p = doc.data();
-
-        contenedor.innerHTML += `
-            <div class="producto">
-                <h3>${p.nombre}</h3>
-                <p>Cantidad: ${p.cantidad}</p>
-                ${p.foto ? `<img src="${p.foto}">` : ""}
-            </div>
-        `;
+function mostrarInventario(filtro = '') {
+  tabla.innerHTML = '';
+  inventario
+    .filter(item => item.nombre.toLowerCase().includes(filtro.toLowerCase()))
+    .forEach((item, index) => {
+      const fila = document.createElement('tr');
+      fila.innerHTML = `
+        <td>${item.nombre}</td>
+        <td>${item.cantidad}</td>
+        <td>${item.foto ? `<img src="${item.foto}" alt="Foto">` : '—'}</td>
+        <td class="acciones">
+          <button onclick="editar(${index})">✏️ Editar</button>
+          <button class="eliminar" onclick="eliminar(${index})">🗑️ Eliminar</button>
+        </td>
+      `;
+      tabla.appendChild(fila);
     });
 }
 
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const nombre = document.getElementById('nombre').value;
+  const cantidad = document.getElementById('cantidad').value;
+  const fotoInput = document.getElementById('foto');
+  const indice = indiceEditar.value;
+  const reader = new FileReader();
 
-// =================== FORMULARIO ===================
-document.getElementById("formInventario").addEventListener("submit", (e) => {
-    e.preventDefault();
+  const guardarProducto = (fotoBase64) => {
+    const producto = { nombre, cantidad, foto: fotoBase64 || '' };
 
-    const nombre = document.getElementById("nombre").value.trim();
-    const cantidad = document.getElementById("cantidad").value;
-    const fotoInput = document.getElementById("foto");
-
-    if (fotoInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const fotoBase64 = reader.result;
-            guardarProducto(nombre, cantidad, fotoBase64);
-        };
-        reader.readAsDataURL(fotoInput.files[0]);
+    if (indice !== '') {
+      inventario[indice] = producto;
+      indiceEditar.value = '';
     } else {
-        guardarProducto(nombre, cantidad, "");
+      inventario.push(producto);
     }
+
+    guardarInventario();
+    mostrarInventario();
+    form.reset();
+  };
+
+  if (fotoInput.files[0]) {
+    reader.onload = function(event) {
+      guardarProducto(event.target.result);
+    };
+    reader.readAsDataURL(fotoInput.files[0]);
+  } else {
+    guardarProducto(indice !== '' ? inventario[indice].foto : '');
+  }
 });
 
+function editar(index) {
+  const item = inventario[index];
+  document.getElementById('nombre').value = item.nombre;
+  document.getElementById('cantidad').value = item.cantidad;
+  indiceEditar.value = index;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-// =================== INICIO ===================
-window.onload = cargarProductos;
+function eliminar(index) {
+  if (confirm("¿Seguro que deseas eliminar este producto?")) {
+    inventario.splice(index, 1);
+    guardarInventario();
+    mostrarInventario();
+  }
+}
 
+buscar.addEventListener('input', () => {
+  mostrarInventario(buscar.value);
+});
+
+mostrarInventario();
